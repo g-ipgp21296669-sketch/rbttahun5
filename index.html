@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Angry Birds RBT Tahun 5 - Cabaran 20 Singa</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #1e293b;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+        /* Mobile Portrait Container aspect constraint */
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 520px;
+            max-height: 920px;
+            margin: 0 auto;
+            position: relative;
+            background: linear-gradient(to bottom, #38bdf8 0%, #7dd3fc 50%, #86efac 85%, #15803d 100%);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .btn-game {
+            transition: all 0.15s ease;
+            box-shadow: 0 5px 0 rgba(0, 0, 0, 0.25);
+        }
+        .btn-game:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+        }
+        .wood-texture {
+            background-color: #854d0e;
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 10px, transparent 0, transparent 20px);
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .pulse-anim {
+            animation: pulse-subtle 1.8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-950 p-0 m-0">
+
+    <!-- GAME CONTAINER FOR VERTICAL PORTRAIT VIEW -->
+    <div id="game-container" class="flex flex-col justify-between">
+        
+        <!-- REGISTRATION MODAL OVERLAY -->
+        <div id="registration-modal" class="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md p-4 flex flex-col items-center justify-center">
+            <div class="bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl relative">
+                <div class="text-5xl mb-3 pulse-anim">📝</div>
+                <h1 class="font-game text-2xl text-emerald-400 mb-2">Pendaftaran Pemain</h1>
+                <p class="text-slate-300 text-xs mb-5">Sila masukkan nama dan kelas untuk merekod markah anda.</p>
+
+                <div class="space-y-4 mb-2">
+                    <div>
+                        <input type="text" id="player-name" placeholder="Nama Penuh Anda" class="w-full bg-slate-800 border border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 font-semibold" required>
+                    </div>
+                    <div>
+                        <input type="text" id="player-class" placeholder="Kelas (Contoh: 5 Mawar)" class="w-full bg-slate-800 border border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 font-semibold" required>
+                    </div>
+                </div>
+                <p id="reg-error-msg" class="text-rose-400 text-xs mb-4 hidden font-bold">Sila isi kedua-dua ruangan di atas!</p>
+
+                <button onclick="startGame()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-game text-lg rounded-2xl btn-game shadow-lg">
+                    Mula Bermain 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- CONFIRM RESET MODAL -->
+        <div id="reset-modal" class="hidden absolute inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-amber-500 rounded-2xl p-5 text-center max-w-xs w-full shadow-xl">
+                <div class="text-3xl mb-2">🔄</div>
+                <h3 class="font-game text-xl text-white mb-4">Mula Semula?</h3>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('reset-modal').classList.add('hidden')" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold transition-all">Batal</button>
+                    <button onclick="executeReset()" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-slate-900 font-bold transition-all">Ya, Mula</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HEADER HUD -->
+        <div class="absolute top-0 left-0 right-0 z-10 p-3 flex justify-between items-center bg-slate-900/60 backdrop-blur-md border-b border-white/10 text-white">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center font-game text-lg border-2 border-white shadow">
+                    🐦
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase tracking-wider text-slate-300">Baki Burung</div>
+                    <div class="font-game text-amber-300 text-lg leading-none" id="birds-left-txt">20 / 20</div>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-wider text-slate-300">Markah</div>
+                <div class="font-game text-2xl text-yellow-400 drop-shadow-md leading-none" id="score-txt">0 / 20</div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="text-right">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-300">Singa</div>
+                    <div class="font-game text-emerald-400 text-lg leading-none" id="lions-left-txt">20 / 20</div>
+                </div>
+                <div class="w-9 h-9 rounded-full bg-amber-600 flex items-center justify-center font-game text-lg border-2 border-white shadow">
+                    🦁
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROL BUTTONS TOP-RIGHT OVERLAY -->
+        <div class="absolute top-16 right-3 z-10 flex flex-col gap-2">
+            <button id="sound-btn" onclick="toggleSound()" class="w-10 h-10 bg-slate-800/80 hover:bg-slate-700 text-white rounded-full flex items-center justify-center border border-white/20 shadow-lg text-sm">
+                <i class="fas fa-volume-up" id="sound-icon"></i>
+            </button>
+            <button id="reset-btn" onclick="confirmReset()" class="w-10 h-10 bg-slate-800/80 hover:bg-slate-700 text-white rounded-full flex items-center justify-center border border-white/20 shadow-lg text-sm">
+                <i class="fas fa-redo"></i>
+            </button>
+        </div>
+
+        <!-- CANVAS -->
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+        <!-- QUIZ MODAL OVERLAY -->
+        <div id="quiz-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm p-4 flex items-center justify-center">
+            <div class="bg-slate-900 border-2 border-amber-500 rounded-3xl p-5 max-w-md w-full shadow-2xl transform transition-all text-white relative overflow-hidden">
+                <div class="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
+                
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-3xl">🦁</span>
+                    <div>
+                        <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30 uppercase tracking-wide">
+                            Soalan <span id="q-num">1</span> Dari 20
+                        </span>
+                        <h2 class="text-xs text-slate-400 mt-1">RBT Tahun 5: Bab 1 Teknologi Rumah Tangga</h2>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 border border-slate-700 p-4 rounded-2xl mb-4">
+                    <p class="font-bold text-slate-100 text-sm md:text-base leading-relaxed" id="q-text">
+                        Loading soalan...
+                    </p>
+                </div>
+
+                <!-- OPTIONS LIST -->
+                <div class="space-y-2.5 mb-4" id="options-container">
+                    <!-- Shuffled Options inserted via JS -->
+                </div>
+
+                <!-- FEEDBACK & NEXT BUTTON -->
+                <div id="quiz-feedback" class="hidden p-3 rounded-xl text-center mb-3 text-sm font-bold"></div>
+
+                <button id="next-btn" onclick="closeQuizModal()" class="hidden w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-game text-lg rounded-2xl btn-game shadow-lg">
+                    Teruskan Melastik 🎯
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME OVER / FINISH MODAL -->
+        <div id="end-modal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md p-4 flex items-center justify-center">
+            <div class="bg-slate-900 border-2 border-yellow-500 rounded-3xl p-6 max-w-md w-full text-center shadow-2xl relative">
+                <div class="text-6xl mb-2 pulse-anim">🏆</div>
+                <h1 class="font-game text-3xl text-yellow-400 mb-1">Tamat Permainan!</h1>
+                <p class="text-slate-300 text-xs mb-4">Keputusan Modul RBT Tahun 5 (Mata Jahitan)</p>
+
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 mb-5">
+                    <div class="text-xs text-slate-400 uppercase tracking-widest mb-1">Markah Keseluruhan</div>
+                    <div class="font-game text-5xl text-yellow-300 mb-2"><span id="final-score">0</span> / 20</div>
+                    <div id="score-rating" class="text-sm font-bold text-emerald-400">Tahniah! Cemerlang!</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-xs mb-6">
+                    <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                        <div class="text-slate-400">Singa Ditumpaskan</div>
+                        <div class="font-game text-xl text-emerald-400 mt-1" id="final-lions">0 / 20</div>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                        <div class="text-slate-400">Burung Digunakan</div>
+                        <div class="font-game text-xl text-amber-400 mt-1" id="final-birds">0 / 20</div>
+                    </div>
+                </div>
+
+                <button onclick="restartGame()" class="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-game text-xl rounded-2xl btn-game shadow-lg">
+                    Main Semula 🔄
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // AUDIO SYNTHESIZER (Web Audio API)
+        let soundEnabled = true;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'stretch') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.exponentialRampToValueAtTime(240, now + 0.1);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'launch') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'hitBlock') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(100, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'hitLion') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(440, now + 0.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'correct') {
+                    const notes = [440, 554.37, 659.25];
+                    notes.forEach((freq, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                        gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.2);
+                    });
+                } else if (type === 'wrong') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').className = soundEnabled ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+        }
+
+        // 20 QUESTIONS FROM RBT TAHUN 5 BAB 1 (MATA JAHITAN)
+        const rawQuestions = [
+            {
+                q: "Apakah fungsi utama mata jahitan Kia dalam jahitan tangan?",
+                correct: "Memulakan dan mematikan sesuatu jahitan tangan serta mencantumkan fabrik secara kukuh",
+                wrongs: [
+                    "Sebagai jahitan sementara untuk menetapkan kedudukan fabrik",
+                    "Mengemaskan bahagian tepi fabrik yang terurai",
+                    "Memuatkan butang pada artikel jahitan"
+                ]
+            },
+            {
+                q: "Mata jahitan manakah yang digunakan sebagai jahitan sementara untuk menetapkan kedudukan kepingan fabrik sebelum dijahit?",
+                correct: "Jahitan Jelujur Kasar",
+                wrongs: [
+                    "Jahitan Kia",
+                    "Jahitan Sembat",
+                    "Jahitan Insang Pari"
+                ]
+            },
+            {
+                q: "Apakah kegunaan utama mata jahitan Jelujur Halus dalam penghasilan artikel jahitan?",
+                correct: "Membuat kedut pada fabrik dan mencantumkan kepingan fabrik secara tetap",
+                wrongs: [
+                    "Mematikan jahitan tangan di bahagian awal dan akhir",
+                    "Mengemaskan lubang butang",
+                    "Menyemat kertas perang pola"
+                ]
+            },
+            {
+                q: "Mata jahitan tangan manakah yang berfungsi untuk mengemaskan bahagian kelepak, lipatan, atau ruang yang ditinggalkan selepas artikel jahitan diterbalikkan?",
+                correct: "Jahitan Sembat",
+                wrongs: [
+                    "Jahitan Insang Pari",
+                    "Jahitan Kia",
+                    "Jahitan Silang Pangkah"
+                ]
+            },
+            {
+                q: "Jenis mata jahitan tangan manakah yang digunakan khusus untuk mengemaskan bahagian tepi fabrik serta bertindak sebagai jahitan hiasan?",
+                correct: "Jahitan Insang Pari",
+                wrongs: [
+                    "Jahitan Sembat",
+                    "Jahitan Jelujur Kasar",
+                    "Jahitan Kia"
+                ]
+            },
+            {
+                q: "Mengapakah bahagian tepi fabrik artikel jahitan perlu dijahit dengan mata jahitan kemasan yang sesuai?",
+                correct: "Supaya benang fabrik tidak terurai dan hasil jahitan kelihatan kemas serta kukuh",
+                wrongs: [
+                    "Untuk membolehkan artikel jahitan menyerap air dengan cepat",
+                    "Bagi mengelakkan warna fabrik pudar apabila dibasuh",
+                    "Untuk membolehkan kertas perang pola digunting"
+                ]
+            },
+            {
+                q: "Apakah mata jahitan tangan yang paling sesuai digunakan untuk mencantumkan kepingan fabrik secara kukuh sebagai pengganti jahitan mesin?",
+                correct: "Jahitan Kia",
+                wrongs: [
+                    "Jahitan Jelujur Kasar",
+                    "Jahitan Sembat",
+                    "Jahitan Insang Pari"
+                ]
+            },
+            {
+                q: "Apakah tujuan mata jahitan sementara (seperti Jelujur Kasar) dibuat pada fabrik sebelum jahitan kekal dijalankan?",
+                correct: "Menetapkan kedudukan kepingan fabrik supaya tidak beranjak semasa dijahit",
+                wrongs: [
+                    "Menambah kecantikan corak fabrik",
+                    "Menutup lubang pada artikel jahitan",
+                    "Menguatkan permukaan luar fabrik"
+                ]
+            },
+            {
+                q: "Antara berikut, yang manakah BUKAN merupakan jenis mata jahitan tangan yang dipelajari dalam RBT Tahun 5?",
+                correct: "Jahitan Rantai Mesin Industri",
+                wrongs: [
+                    "Jahitan Kia",
+                    "Jahitan Insang Pari",
+                    "Jahitan Sembat"
+                ]
+            },
+            {
+                q: "Apakah alatan utama yang digunakan bersama benang untuk menghasilkan mata jahitan tangan pada kepingan fabrik?",
+                correct: "Jarum jahit tangan",
+                wrongs: [
+                    "Jarum peniti",
+                    "Peretas jahitan",
+                    "Roda surih"
+                ]
+            },
+            {
+                q: "Alatan manakah yang digunakan untuk meretas dan memotong mata jahitan yang tersilap dibuat pada fabrik?",
+                correct: "Peretas jahitan",
+                wrongs: [
+                    "Gunting fabrik",
+                    "Jarum peniti",
+                    "Kapur tukang jahit"
+                ]
+            },
+            {
+                q: "Apabila artikel jahitan diterbalikkan selepas dijahit, mata jahitan manakah yang paling sesuai digunakan untuk menjahit dan menutup ruang kelepak antara 5 cm hingga 7 cm tersebut?",
+                correct: "Jahitan Sembat",
+                wrongs: [
+                    "Jahitan Silang Pangkah",
+                    "Jahitan Jelujur Kasar",
+                    "Jahitan Lubang Butang"
+                ]
+            },
+            {
+                q: "Apakah jenis mata jahitan yang kelihatan menyerupai bentuk 'X' dan digunakan sebagai jahitan hiasan atau mengemaskan kelepak?",
+                correct: "Jahitan Silang Pangkah",
+                wrongs: [
+                    "Jahitan Insang Pari",
+                    "Jahitan Kia",
+                    "Jahitan Jelujur Halus"
+                ]
+            },
+            {
+                q: "Antara berikut, apakah ciri utama jahitan Kia jika dibandingkan dengan jahitan jelujur kasar?",
+                correct: "Rupa jahitan Kia kukuh dan menyerupai jahitan mesin di sebelah luar",
+                wrongs: [
+                    "Jahitan Kia mudah dicabut dan merupakan jahitan sementara",
+                    "Jahitan Kia hanya dibuat pada kertas perang",
+                    "Jahitan Kia dibuat tanpa menggunakan benang"
+                ]
+            },
+            {
+                q: "Apakah tujuan memasang mata jahitan hiasan seperti jahitan Insang Pari pada bahagian tepi artikel jahitan?",
+                correct: "Untuk mencantikkan artikel jahitan dan mengemaskan bahagian tepi",
+                wrongs: [
+                    "Untuk menutup velcro",
+                    "Untuk memegang span di bahagian dalam",
+                    "Untuk memudahkan proses menggunting pola"
+                ]
+            },
+            {
+                q: "Semasa melakukan mata jahitan tangan, apakah alatan yang digunakan untuk menetapkan kedudukan fabrik sebelum menjahit supaya kain tidak tergelincir?",
+                correct: "Jarum peniti",
+                wrongs: [
+                    "Roda surih",
+                    "Peretas jahitan",
+                    "Pembaris"
+                ]
+            },
+            {
+                q: "Apakah mata jahitan yang sesuai digunakan untuk mengemaskan bahagian tepi lubang butang supaya benang pada tepi lubang tidak terurai?",
+                correct: "Jahitan Lubang Butang",
+                wrongs: [
+                    "Jahitan Kia",
+                    "Jahitan Jelujur Kasar",
+                    "Jahitan Sembat"
+                ]
+            },
+            {
+                q: "Selain menjahit secara manual menggunakan tangan, apakah alatan moden bersaiz kecil yang boleh digunakan untuk membuat mata jahitan secara cepat pada fabrik?",
+                correct: "Mesin jahit mini / mesin jahit tangan",
+                wrongs: [
+                    "Gunting fabrik",
+                    "Peretas jahit elektrik",
+                    "Roda surih beroda dua"
+                ]
+            },
+            {
+                q: "Antara urutan berikut, manakah langkah yang betul melibatkan mata jahitan semasa menghasilkan artikel jahitan?",
+                correct: "Menyemat pola dengan jarum peniti -> Menggunting fabrik -> Menjahit kepingan fabrik dengan mata jahitan",
+                wrongs: [
+                    "Menggunting fabrik -> Menjahit mata jahitan -> Menyemat pola jarum peniti",
+                    "Menjahit mata jahitan -> Menyemat pola -> Menggunting fabrik",
+                    "Menterbalikkan fabrik -> Menggunting pola -> Menjahit"
+                ]
+            },
+            {
+                q: "Apakah kelebihan utama menguasai pelbagai jenis mata jahitan tangan bagi seorang murid RBT?",
+                correct: "Boleh menghasilkan dan membaiki pelbagai artikel jahitan sendiri secara kemas dan kreatif",
+                wrongs: [
+                    "Tidak perlu menggunakan benang dan fabrik semasa menjahit",
+                    "Boleh menggantikan proses melukis pola kertas perang",
+                    "Dapat mengelakkan penggunaan gunting fabrik"
+                ]
+            }
+        ];
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // GAME STATE
+        let birdsLeft = 20;
+        let score = 0;
+        let lionsDefeated = 0;
+        let activeQuestionIndex = null;
+        let currentActiveLion = null;
+        let isQuestionActive = false;
+        let gameFinished = false;
+        let gameStarted = false; // Flag status pendaftaran
+
+        // PLAYER DATA & GOOGLE SHEETS SETTINGS
+        let playerName = "";
+        let playerClass = "";
+        // PERHATIAN: Masukkan URL Web App Google Apps Script anda di bawah ini:
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzT1ujLu5oWeG_-oYhUHqRztQIlqx7VDEH7O5m04ASlrmpKTEvBtlkPB_vk1z2qKVT/exec";
+
+        // CANVAS RESIZING FOR PORTRAIT MOBILITY
+        let cw = 0;
+        let ch = 0;
+
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            cw = container.clientWidth;
+            ch = container.clientHeight;
+            canvas.width = cw;
+            canvas.height = ch;
+            initPhysicsCoordinates();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // SLINGSHOT & PHYSICS VARS
+        let slingX = 0;
+        let slingY = 0;
+        let slingRadius = 24;
+
+        // BIRD OBJECT
+        let bird = {
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            radius: 16,
+            isDragging: false,
+            isFlying: false,
+            settled: false
+        };
+
+        // OBJECTS IN SCENE
+        let blocks = [];
+        let lions = [];
+        let particles = [];
+
+        function initPhysicsCoordinates() {
+            // Position Slingshot at Bottom-Left region
+            slingX = cw * 0.22;
+            slingY = ch * 0.78;
+
+            resetBirdPosition();
+
+            // Re-build Pyramid Structure on the Upper Right Side
+            buildPyramidStructure();
+        }
+
+        function resetBirdPosition() {
+            bird.x = slingX;
+            bird.y = slingY - 12;
+            bird.vx = 0;
+            bird.vy = 0;
+            bird.isDragging = false;
+            bird.isFlying = false;
+            bird.settled = false;
+        }
+
+        function buildPyramidStructure() {
+            blocks = [];
+            lions = [];
+
+            // Pyramid specifications to hold 20 Lions sheltered by wooden blocks
+            // Pyramid tiers: 6 lions on bottom (row 1), 5 on row 2, 4 on row 3, 3 on row 4, 2 on row 5 = 20 Lions total!
+            const startX = cw * 0.48;
+            const startY = ch * 0.62;
+            const colWidth = cw * 0.085;
+            const rowHeight = ch * 0.085;
+
+            const tierCounts = [6, 5, 4, 3, 2]; // 6+5+4+3+2 = 20 Lions
+            let lionIdCounter = 0;
+
+            for (let r = 0; r < tierCounts.length; r++) {
+                const count = tierCounts[r];
+                const rowY = startY - (r * rowHeight);
+                const rowOffsetX = startX + (r * colWidth * 0.5);
+
+                for (let c = 0; c < count; c++) {
+                    const posX = rowOffsetX + (c * colWidth);
+
+                    // Wooden block protective box frame around lion
+                    const bw = colWidth * 0.92;
+                    const bh = rowHeight * 0.92;
+
+                    // Wooden block holding lion inside
+                    blocks.push({
+                        x: posX,
+                        y: rowY,
+                        w: bw,
+                        h: bh,
+                        alive: true
+                    });
+
+                    // Lion placed statically inside block
+                    lions.push({
+                        id: lionIdCounter,
+                        questionIndex: lionIdCounter, // mapped to question
+                        x: posX,
+                        y: rowY,
+                        radius: Math.min(bw, bh) * 0.38,
+                        alive: true,
+                        hit: false
+                    });
+
+                    lionIdCounter++;
+                }
+            }
+        }
+
+        // TOUCH & MOUSE EVENTS FOR SLINGSHOT
+        function getEventPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function onPointerDown(e) {
+            if (!gameStarted || bird.isFlying || isQuestionActive || gameFinished || birdsLeft <= 0) return;
+            const pos = getEventPos(e);
+            const dx = pos.x - bird.x;
+            const dy = pos.y - bird.y;
+            if (Math.sqrt(dx * dx + dy * dy) < bird.radius * 2.5) {
+                bird.isDragging = true;
+                playSound('stretch');
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!bird.isDragging || isQuestionActive) return;
+            const pos = getEventPos(e);
+
+            // Pull back physics limits
+            let dx = pos.x - slingX;
+            let dy = pos.y - (slingY - 12);
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            const maxPull = 90;
+
+            if (dist > maxPull) {
+                dx = (dx / dist) * maxPull;
+                dy = (dy / dist) * maxPull;
+            }
+
+            bird.x = slingX + dx;
+            bird.y = (slingY - 12) + dy;
+        }
+
+        function onPointerUp() {
+            if (!bird.isDragging || isQuestionActive) return;
+            bird.isDragging = false;
+
+            // Launch velocity based on pull distance
+            const dx = slingX - bird.x;
+            const dy = (slingY - 12) - bird.y;
+            const forceMultiplier = 0.22;
+
+            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                bird.vx = dx * forceMultiplier;
+                bird.vy = dy * forceMultiplier;
+                bird.isFlying = true;
+                playSound('launch');
+            } else {
+                // Snap back if released without pulling
+                resetBirdPosition();
+            }
+        }
+
+        canvas.addEventListener('mousedown', onPointerDown);
+        canvas.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+        canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('touchend', onPointerUp);
+
+        function createExplosionParticles(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    radius: Math.random() * 4 + 2,
+                    color: color,
+                    alpha: 1,
+                    life: 25
+                });
+            }
+        }
+
+        function updatePhysics() {
+            if (isQuestionActive || gameFinished) return;
+
+            // Update explosion particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 1 / p.life;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Update flying bird
+            if (bird.isFlying) {
+                bird.x += bird.vx;
+                bird.y += bird.vy;
+                bird.vy += 0.38; // Gravity effect
+
+                // Check bird collision with wooden blocks
+                for (let i = 0; i < blocks.length; i++) {
+                    let b = blocks[i];
+                    if (b.alive) {
+                        // Simple AABB circle collision check
+                        if (bird.x + bird.radius > b.x - b.w / 2 &&
+                            bird.x - bird.radius < b.x + b.w / 2 &&
+                            bird.y + bird.radius > b.y - b.h / 2 &&
+                            bird.y - bird.radius < b.y + b.h / 2) {
+                            
+                            b.alive = false; // Block breaks upon bird hit!
+                            createExplosionParticles(b.x, b.y, '#b45309');
+                            playSound('hitBlock');
+                            
+                            // Slight momentum loss
+                            bird.vx *= 0.7;
+                            bird.vy *= 0.7;
+                        }
+                    }
+                }
+
+                // Check bird collision with Lions
+                for (let i = 0; i < lions.length; i++) {
+                    let l = lions[i];
+                    if (l.alive) {
+                        let dx = bird.x - l.x;
+                        let dy = bird.y - l.y;
+                        let dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < bird.radius + l.radius) {
+                            l.alive = false; // Lion vanishes when struck!
+                            createExplosionParticles(l.x, l.y, '#f59e0b');
+                            playSound('hitLion');
+
+                            // Trigger Question Popup for this lion!
+                            triggerQuestionForLion(l);
+                            break;
+                        }
+                    }
+                }
+
+                // Check out of screen bounds or ground collision
+                if (bird.x > cw + 50 || bird.x < -50 || bird.y > ch - 40 || bird.y < -100) {
+                    onBirdFinished();
+                }
+            }
+        }
+
+        function onBirdFinished() {
+            birdsLeft--;
+            document.getElementById('birds-left-txt').textContent = `${birdsLeft} / 20`;
+
+            if (birdsLeft <= 0 && lionsDefeated < 20) {
+                setTimeout(showEndModal, 600);
+            } else if (!gameFinished) {
+                resetBirdPosition();
+            }
+        }
+
+        function triggerQuestionForLion(lionObj) {
+            currentActiveLion = lionObj;
+            activeQuestionIndex = lionObj.questionIndex;
+            isQuestionActive = true;
+
+            const qData = rawQuestions[activeQuestionIndex];
+            
+            // Randomize Options (A, B, C, D)
+            const allOptions = [qData.correct, ...qData.wrongs];
+            shuffleArray(allOptions);
+
+            document.getElementById('q-num').textContent = activeQuestionIndex + 1;
+            document.getElementById('q-text').textContent = qData.q;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            const optionLabels = ['A', 'B', 'C', 'D'];
+
+            allOptions.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700/80 rounded-2xl flex items-center gap-3 transition-all transform active:scale-[0.98]';
+                
+                const isCorrectOption = (optText === qData.correct);
+
+                btn.innerHTML = `
+                    <span class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center font-bold text-xs shrink-0">
+                        ${optionLabels[index]}
+                    </span>
+                    <span class="text-xs md:text-sm text-slate-200 font-semibold">${optText}</span>
+                `;
+
+                btn.onclick = () => handleAnswerSelection(isCorrectOption, btn, qData.correct);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quiz-feedback').className = 'hidden p-3 rounded-xl text-center mb-3 text-sm font-bold';
+            document.getElementById('next-btn').classList.add('hidden');
+
+            document.getElementById('quiz-modal').classList.remove('hidden');
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        }
+
+        function handleAnswerSelection(isCorrect, selectedBtn, correctText) {
+            const container = document.getElementById('options-container');
+            const buttons = container.querySelectorAll('button');
+            
+            // Disable all option buttons
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+            });
+
+            const feedbackEl = document.getElementById('quiz-feedback');
+
+            if (isCorrect) {
+                selectedBtn.classList.remove('bg-slate-800', 'opacity-60');
+                selectedBtn.classList.add('bg-emerald-950', 'border-emerald-500', 'text-emerald-200');
+                
+                score++;
+                playSound('correct');
+                feedbackEl.className = 'p-3 rounded-xl text-center mb-3 text-sm font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                feedbackEl.innerHTML = '✨ Jawapan Tepat! (+1 Markah)';
+            } else {
+                selectedBtn.classList.remove('bg-slate-800', 'opacity-60');
+                selectedBtn.classList.add('bg-rose-950', 'border-rose-500', 'text-rose-200');
+
+                // Highlight correct button
+                buttons.forEach(btn => {
+                    if (btn.textContent.includes(correctText)) {
+                        btn.classList.remove('opacity-60');
+                        btn.classList.add('bg-emerald-950/80', 'border-emerald-500/80');
+                    }
+                });
+
+                playSound('wrong');
+                feedbackEl.className = 'p-3 rounded-xl text-center mb-3 text-sm font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+                feedbackEl.innerHTML = '❌ Jawapan Kurang Tepat.';
+            }
+
+            lionsDefeated++;
+            document.getElementById('score-txt').textContent = `${score} / 20`;
+            document.getElementById('lions-left-txt').textContent = `${20 - lionsDefeated} / 20`;
+
+            feedbackEl.classList.remove('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function closeQuizModal() {
+            document.getElementById('quiz-modal').classList.add('hidden');
+            isQuestionActive = false;
+
+            if (lionsDefeated >= 20 || birdsLeft <= 1) {
+                showEndModal();
+            } else {
+                resetBirdPosition();
+            }
+        }
+
+        function startGame() {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const classInput = document.getElementById('player-class').value.trim();
+            const errorMsg = document.getElementById('reg-error-msg');
+            
+            if (nameInput === "" || classInput === "") {
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            
+            errorMsg.classList.add('hidden');
+            playerName = nameInput;
+            playerClass = classInput;
+            
+            document.getElementById('registration-modal').classList.add('hidden');
+            gameStarted = true;
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, cw, ch);
+
+            // GROUND & ENVIRONMENT
+            const groundY = ch * 0.88;
+            ctx.fillStyle = '#166534';
+            ctx.fillRect(0, groundY, cw, ch - groundY);
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(0, groundY, cw, 12);
+
+            // DRAW SLINGSHOT BACK BAND & STAND
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+
+            // Slingshot Y Fork
+            ctx.beginPath();
+            ctx.moveTo(slingX, groundY);
+            ctx.lineTo(slingX, slingY + 20);
+            ctx.lineTo(slingX - 18, slingY - 15);
+            ctx.moveTo(slingX, slingY + 20);
+            ctx.lineTo(slingX + 18, slingY - 15);
+            ctx.stroke();
+
+            // Elastic rubber band (Back)
+            if (bird.isDragging || !bird.isFlying) {
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(slingX - 16, slingY - 12);
+                ctx.lineTo(bird.x, bird.y);
+                ctx.stroke();
+            }
+
+            // DRAW TRAJECTORY DOTS WHILE DRAGGING
+            if (bird.isDragging) {
+                const dx = slingX - bird.x;
+                const dy = (slingY - 12) - bird.y;
+                let simX = bird.x;
+                let simY = bird.y;
+                let simVx = dx * 0.22;
+                let simVy = dy * 0.22;
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                for (let step = 0; step < 18; step++) {
+                    simX += simVx;
+                    simY += simVy;
+                    simVy += 0.38;
+
+                    ctx.beginPath();
+                    ctx.arc(simX, simY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // DRAW WOODEN BLOCKS
+            blocks.forEach(b => {
+                if (b.alive) {
+                    ctx.fillStyle = '#a16207';
+                    ctx.strokeStyle = '#713f12';
+                    ctx.lineWidth = 3;
+
+                    ctx.beginPath();
+                    ctx.roundRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h, 6);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Inner wood plank accent lines
+                    ctx.strokeStyle = '#854d0e';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(b.x - b.w / 2 + 4, b.y);
+                    ctx.lineTo(b.x + b.w / 2 - 4, b.y);
+                    ctx.stroke();
+                }
+            });
+
+            // DRAW LIONS
+            lions.forEach(l => {
+                if (l.alive) {
+                    ctx.save();
+                    ctx.translate(l.x, l.y);
+
+                    // Lion Mane
+                    ctx.fillStyle = '#b45309';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, l.radius * 1.25, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Lion Head
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, l.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Ears
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(-l.radius * 0.7, -l.radius * 0.7, l.radius * 0.35, 0, Math.PI * 2);
+                    ctx.arc(l.radius * 0.7, -l.radius * 0.7, l.radius * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Eyes
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.arc(-l.radius * 0.3, -l.radius * 0.15, l.radius * 0.15, 0, Math.PI * 2);
+                    ctx.arc(l.radius * 0.3, -l.radius * 0.15, l.radius * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Snout & Nose
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(0, l.radius * 0.2, l.radius * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#78350f';
+                    ctx.beginPath();
+                    ctx.arc(0, l.radius * 0.1, l.radius * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            });
+
+            // DRAW BIRD
+            if (birdsLeft > 0 || bird.isFlying) {
+                ctx.save();
+                ctx.translate(bird.x, bird.y);
+
+                // Red Angry Bird Body
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.arc(0, 0, bird.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // White Belly
+                ctx.fillStyle = '#fef2f2';
+                ctx.beginPath();
+                ctx.arc(0, bird.radius * 0.35, bird.radius * 0.6, 0, Math.PI);
+                ctx.fill();
+
+                // Angry Eyebrows
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-bird.radius * 0.6, -bird.radius * 0.3);
+                ctx.lineTo(-2, -bird.radius * 0.1);
+                ctx.moveTo(bird.radius * 0.6, -bird.radius * 0.3);
+                ctx.lineTo(2, -bird.radius * 0.1);
+                ctx.stroke();
+
+                // Eyes
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-bird.radius * 0.25, -bird.radius * 0.1, 4, 0, Math.PI * 2);
+                ctx.arc(bird.radius * 0.25, -bird.radius * 0.1, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(-bird.radius * 0.2, -bird.radius * 0.1, 2, 0, Math.PI * 2);
+                ctx.arc(bird.radius * 0.2, -bird.radius * 0.1, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Beak
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.moveTo(-4, 0);
+                ctx.lineTo(bird.radius * 0.6, bird.radius * 0.15);
+                ctx.lineTo(-4, bird.radius * 0.3);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            // Elastic rubber band (Front)
+            if (bird.isDragging || !bird.isFlying) {
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(slingX + 16, slingY - 12);
+                ctx.lineTo(bird.x, bird.y);
+                ctx.stroke();
+            }
+
+            // DRAW EXPLOSION PARTICLES
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            });
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            drawScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function showEndModal() {
+            gameFinished = true;
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-lions').textContent = `${lionsDefeated} / 20`;
+            document.getElementById('final-birds').textContent = `${20 - birdsLeft} / 20`;
+
+            const ratingEl = document.getElementById('score-rating');
+            if (score >= 17) {
+                ratingEl.className = 'text-sm font-bold text-emerald-400';
+                ratingEl.textContent = '🌟 Tahniah! Cemerlang & Menguasai Mata Jahitan!';
+            } else if (score >= 12) {
+                ratingEl.className = 'text-sm font-bold text-amber-400';
+                ratingEl.textContent = '👍 Syabas! Keputusan Yang Baik!';
+            } else {
+                ratingEl.className = 'text-sm font-bold text-rose-400';
+                ratingEl.textContent = '💪 Boleh Cuba Lagi Untuk Keputusan Lebih Baik!';
+            }
+
+            document.getElementById('end-modal').classList.remove('hidden');
+            
+            // Rekod data ke Google Sheets
+            hantarDataKeGoogleSheets();
+        }
+
+        function hantarDataKeGoogleSheets() {
+            // Membuang sekatan URL lama supaya data sentiasa dihantar
+            if (!playerName || !playerClass || GOOGLE_SCRIPT_URL === "") {
+                console.log("Penghantaran diabaikan: Tiada data pemain atau URL kosong.");
+                return;
+            }
+
+            const ratingEl = document.getElementById('score-rating');
+            const originalText = ratingEl.textContent;
+            ratingEl.innerHTML = `Merekod markah ke pangkalan data... ⏳<br><span class="text-xs text-slate-400">${originalText}</span>`;
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Penting untuk elak sekatan CORS browser -> google script
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    nama: playerName,
+                    kelas: playerClass,
+                    markah: score
+                })
+            }).then(() => {
+                ratingEl.innerHTML = `✅ Markah berjaya direkod!<br><span class="text-xs text-emerald-200">${originalText}</span>`;
+            }).catch(err => {
+                ratingEl.innerHTML = `❌ Gagal merekod markah.<br><span class="text-xs text-slate-400">${originalText}</span>`;
+                console.error("Ralat Sheet:", err);
+            });
+        }
+
+        function confirmReset() {
+            // Memaparkan modal reset kustom (menggantikan fungsi alert/confirm default)
+            document.getElementById('reset-modal').classList.remove('hidden');
+        }
+        
+        function executeReset() {
+            document.getElementById('reset-modal').classList.add('hidden');
+            restartGame();
+        }
+
+        function restartGame() {
+            score = 0;
+            lionsDefeated = 0;
+            birdsLeft = 20;
+            gameFinished = false;
+            isQuestionActive = false;
+
+            document.getElementById('score-txt').textContent = '0 / 20';
+            document.getElementById('birds-left-txt').textContent = '20 / 20';
+            document.getElementById('lions-left-txt').textContent = '20 / 20';
+
+            document.getElementById('end-modal').classList.add('hidden');
+            document.getElementById('quiz-modal').classList.add('hidden');
+
+            initPhysicsCoordinates();
+        }
+
+        // INITIALIZE GAME ON LOAD
+        window.onload = () => {
+            resizeCanvas();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
